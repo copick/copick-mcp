@@ -1,10 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "copick-mcp"
-version = "0.1.0"
-description = "Add your description here"
+dynamic = ["version"]
+description = "MCP server for Copick - provides data exploration and CLI introspection tools"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "copick>=0.8.1",
-    "mcp[cli]>=1.6.0",
+license = {file = "LICENSE"}
+authors = [
+    {name = "Copick Team"}
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "copick>=1.15.0",
+    "copick-utils",
+    "copick-torch",
+    "fastmcp>=0.1.0",
+    "click>=8.0",
+]
+
+[project.entry-points."copick.setup.commands"]
+mcp = "copick_mcp.cli.setup:mcp"
+mcp-status = "copick_mcp.cli.setup:mcp_status"
+mcp-remove = "copick_mcp.cli.setup:mcp_remove"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pre-commit",
+    "black",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/copick/copick-mcp"
+
+[tool.hatch.version]
+path = "src/copick_mcp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/copick_mcp"]
+
+[tool.hatch.build]
+only-packages = true
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+select = ["E", "F", "I", "B", "W"]
+ignore = []
+
+[tool.ruff.isort]
+known-first-party = ["copick_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
