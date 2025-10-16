@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.0...copick-mcp-v0.2.1) (2025-10-16)
+
+
+### 🐞 Bug Fixes
+
+* Fix release workflow. ([#7](https://github.com/copick/copick-mcp/issues/7)) ([1551772](https://github.com/copick/copick-mcp/commit/1551772d152ada016c9b4a2c851b3e573e3691aa))
+
 ## [0.2.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.1.0...copick-mcp-v0.2.0) (2025-10-16)
 
 
