@@ -1,7 +1,6 @@
 """Copick MCP Server - FastMCP server providing data exploration and CLI introspection tools."""
 
 import logging
-import os
 from typing import Any, Dict, Optional
 
 import copick
@@ -63,7 +62,7 @@ def list_runs(config_path: str) -> Dict[str, Any]:
 
         return {"success": True, "runs": run_list, "count": len(run_list)}
     except Exception as e:
-        logger.error(f"Failed to list runs: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list runs: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -98,14 +97,14 @@ def get_run_details(config_path: str, run_name: str) -> Dict[str, Any]:
                     "user_id": pick.user_id,
                     "session_id": pick.session_id,
                     "num_points": num_points,
-                }
+                },
             )
 
         # Get mesh information
         meshes_list = []
         for mesh in run.meshes:
             meshes_list.append(
-                {"object_name": mesh.pickable_object_name, "user_id": mesh.user_id, "session_id": mesh.session_id}
+                {"object_name": mesh.pickable_object_name, "user_id": mesh.user_id, "session_id": mesh.session_id},
             )
 
         # Get segmentation information
@@ -118,7 +117,7 @@ def get_run_details(config_path: str, run_name: str) -> Dict[str, Any]:
                     "session_id": seg.session_id,
                     "is_multilabel": seg.is_multilabel,
                     "voxel_size": seg.voxel_size,
-                }
+                },
             )
 
         return {
@@ -130,7 +129,7 @@ def get_run_details(config_path: str, run_name: str) -> Dict[str, Any]:
             "segmentations": segmentations_list,
         }
     except Exception as e:
-        logger.error(f"Failed to get run details: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to get run details: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -172,7 +171,7 @@ def list_objects(config_path: str) -> Dict[str, Any]:
 
         return {"success": True, "objects": objects_list, "count": len(objects_list)}
     except Exception as e:
-        logger.error(f"Failed to list objects: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list objects: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -214,7 +213,7 @@ def list_tomograms(config_path: str, run_name: str, voxel_spacing: float) -> Dic
 
         return {"success": True, "run_name": run_name, "voxel_spacing": voxel_spacing, "tomograms": tomograms_list}
     except Exception as e:
-        logger.error(f"Failed to list tomograms: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list tomograms: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -279,7 +278,7 @@ def list_picks(
 
         return {"success": True, "run_name": run_name, "picks": picks_list, "count": len(picks_list)}
     except Exception as e:
-        logger.error(f"Failed to list picks: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list picks: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -315,7 +314,11 @@ def list_segmentations(
             return {"success": False, "error": f"Run '{run_name}' not found"}
 
         segmentations = run.get_segmentations(
-            voxel_size=voxel_size, name=name, user_id=user_id, session_id=session_id, is_multilabel=is_multilabel
+            voxel_size=voxel_size,
+            name=name,
+            user_id=user_id,
+            session_id=session_id,
+            is_multilabel=is_multilabel,
         )
 
         if not segmentations:
@@ -346,12 +349,17 @@ def list_segmentations(
                     "session_id": seg.session_id,
                     "is_multilabel": seg.is_multilabel,
                     "voxel_size": seg.voxel_size,
-                }
+                },
             )
 
-        return {"success": True, "run_name": run_name, "segmentations": segmentations_list, "count": len(segmentations_list)}
+        return {
+            "success": True,
+            "run_name": run_name,
+            "segmentations": segmentations_list,
+            "count": len(segmentations_list),
+        }
     except Exception as e:
-        logger.error(f"Failed to list segmentations: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list segmentations: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -384,13 +392,17 @@ def list_voxel_spacings(config_path: str, run_name: str) -> Dict[str, Any]:
 
         return {"success": True, "run_name": run_name, "voxel_spacings": voxel_spacings_list}
     except Exception as e:
-        logger.error(f"Failed to list voxel spacings: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list voxel spacings: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
 @mcp.tool()
 def list_meshes(
-    config_path: str, run_name: str, object_name: Optional[str] = None, user_id: Optional[str] = None, session_id: Optional[str] = None
+    config_path: str,
+    run_name: str,
+    object_name: Optional[str] = None,
+    user_id: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """List meshes for a specific run, optionally filtered by object name, user ID, and session ID.
 
@@ -427,12 +439,12 @@ def list_meshes(
         meshes_list = []
         for mesh in meshes:
             meshes_list.append(
-                {"object_name": mesh.pickable_object_name, "user_id": mesh.user_id, "session_id": mesh.session_id}
+                {"object_name": mesh.pickable_object_name, "user_id": mesh.user_id, "session_id": mesh.session_id},
             )
 
         return {"success": True, "run_name": run_name, "meshes": meshes_list, "count": len(meshes_list)}
     except Exception as e:
-        logger.error(f"Failed to list meshes: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list meshes: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -467,7 +479,7 @@ def get_project_info(config_path: str) -> Dict[str, Any]:
 
         return {"success": True, "project": project_info}
     except Exception as e:
-        logger.error(f"Failed to get project info: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to get project info: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -489,7 +501,7 @@ def get_json_config(config_path: str) -> Dict[str, Any]:
 
         return {"success": True, "config": config}
     except Exception as e:
-        logger.error(f"Failed to get JSON config: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to get JSON config: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -511,7 +523,7 @@ def list_copick_cli_commands() -> Dict[str, Any]:
         commands = get_all_cli_commands()
         return {"success": True, "commands": commands}
     except Exception as e:
-        logger.error(f"Failed to list CLI commands: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to list CLI commands: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -530,7 +542,7 @@ def get_copick_cli_command_info(command_path: str) -> Dict[str, Any]:
 
         return get_command_info(command_path)
     except Exception as e:
-        logger.error(f"Failed to get CLI command info: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to get CLI command info: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -549,7 +561,7 @@ def validate_copick_cli_command(command_string: str) -> Dict[str, Any]:
 
         return validate_cmd(command_string)
     except Exception as e:
-        logger.error(f"Failed to validate CLI command: {str(e)}", exc_info=True)
+        logger.exception(f"Failed to validate CLI command: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
