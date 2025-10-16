@@ -1,10 +1,19 @@
 """CLI introspection utilities for discovering and analyzing copick CLI commands."""
 
 import shlex
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import click
-from copick.cli.cli import add_core_commands, add_plugin_commands, convert, evaluation, inference, logical, process, training
+from copick.cli.cli import (
+    add_core_commands,
+    add_plugin_commands,
+    convert,
+    evaluation,
+    inference,
+    logical,
+    process,
+    training,
+)
 from copick.cli.ext import load_plugin_commands
 
 
@@ -14,7 +23,15 @@ def get_all_cli_commands() -> Dict[str, Any]:
     Returns:
         Dictionary containing hierarchical structure of all commands with metadata.
     """
-    commands = {"main": [], "inference": [], "training": [], "evaluation": [], "process": [], "convert": [], "logical": []}
+    commands = {
+        "main": [],
+        "inference": [],
+        "training": [],
+        "evaluation": [],
+        "process": [],
+        "convert": [],
+        "logical": [],
+    }
 
     # Get main commands (core commands)
     try:
@@ -30,9 +47,11 @@ def get_all_cli_commands() -> Dict[str, Any]:
             commands["main"].append(
                 {
                     "name": cmd_name,
-                    "short_help": cmd.get_short_help_str(limit=120) if hasattr(cmd, "get_short_help_str") else cmd.short_help,
+                    "short_help": cmd.get_short_help_str(limit=120)
+                    if hasattr(cmd, "get_short_help_str")
+                    else cmd.short_help,
                     "help": cmd.help,
-                }
+                },
             )
     except Exception as e:
         commands["main"].append({"error": f"Failed to load core commands: {str(e)}"})
@@ -47,7 +66,7 @@ def get_all_cli_commands() -> Dict[str, Any]:
         "logical": logical,
     }
 
-    for group_name, group_cmd in groups.items():
+    for group_name, _group_cmd in groups.items():
         try:
             plugin_commands = load_plugin_commands(group_name)
             if plugin_commands:
@@ -62,7 +81,7 @@ def get_all_cli_commands() -> Dict[str, Any]:
                             ),
                             "help": command.help,
                             "package": package_name,
-                        }
+                        },
                     )
         except Exception as e:
             commands[group_name].append({"error": f"Failed to load {group_name} commands: {str(e)}"})
@@ -160,7 +179,7 @@ def get_command_info(command_path: str) -> Dict[str, Any]:
 
             if group_name in groups:
                 plugin_commands = load_plugin_commands(group_name)
-                for cmd, package_name in plugin_commands:
+                for cmd, _package_name in plugin_commands:
                     if cmd.name == cmd_name:
                         command = cmd
                         break

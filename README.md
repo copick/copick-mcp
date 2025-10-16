@@ -49,6 +49,7 @@ After setup:
 If you prefer manual setup, add this to your Claude Desktop configuration file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 **Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
 
 ```json
@@ -250,14 +251,6 @@ copick setup mcp-remove --server-name "copick-mcp"
 copick setup mcp-remove --server-name "copick-mcp" --force
 ```
 
-## Architecture
-
-The Copick MCP server is built with:
-- **FastMCP** - Modern MCP server framework
-- **Click introspection** - Dynamic discovery of CLI commands from copick packages
-- **Smart caching** - Efficient copick root management
-- **Read-only operations** - All data exploration tools are safe and non-destructive
-
 ## Troubleshooting
 
 1. **"MCP server not found"**: Ensure you've restarted Claude Desktop completely after configuration
@@ -290,6 +283,6 @@ MIT License - See LICENSE file for details.
 
 ## Links
 
-- [Copick Documentation](https://github.com/copick/copick)
+- [Copick Documentation](https://copick.github.io/copick)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 - [FastMCP](https://github.com/jlowin/fastmcp)

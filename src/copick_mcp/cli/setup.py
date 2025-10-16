@@ -135,7 +135,7 @@ def mcp_status():
             click.echo(f"   MCP servers configured: {len(mcp_servers)}")
 
             # Check for Copick MCP server
-            copick_servers = [name for name in mcp_servers.keys() if "copick" in name.lower()]
+            copick_servers = [name for name in mcp_servers if "copick" in name.lower()]
             if copick_servers:
                 click.echo(f"   ✅ Copick MCP servers found: {', '.join(copick_servers)}")
                 for server_name in copick_servers:
