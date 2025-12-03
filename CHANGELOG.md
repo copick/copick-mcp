@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.1...copick-mcp-v0.2.2) (2025-12-03)
+
+
+### 🐞 Bug Fixes
+
+* Bump actions/checkout from 5 to 6 ([#11](https://github.com/copick/copick-mcp/issues/11)) ([53d7a51](https://github.com/copick/copick-mcp/commit/53d7a51169b384ad5dd00f0e3abbc6db6576cbca))
+* Bump chanzuckerberg/github-actions from 6.10.0 to 6.11.1 ([#10](https://github.com/copick/copick-mcp/issues/10)) ([c4b1dd5](https://github.com/copick/copick-mcp/commit/c4b1dd508080eece8d13ececb5bbceb5142f4424))
+
+
+### 🧹 Miscellaneous Chores
+
+* bump version for zenodo DOI ([#12](https://github.com/copick/copick-mcp/issues/12)) ([b9b30a2](https://github.com/copick/copick-mcp/commit/b9b30a277d4e4af8d77c074acd77c137609a5ad7))
+
 ## [0.2.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.0...copick-mcp-v0.2.1) (2025-10-16)
 
 
