@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.3...copick-mcp-v0.2.4) (2026-01-26)
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.12.2 to 6.13.0 ([#18](https://github.com/copick/copick-mcp/issues/18)) ([d437d3f](https://github.com/copick/copick-mcp/commit/d437d3fa93c3d9510f60892c5996197e33e3e138))
+
 ## [0.2.3](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.2...copick-mcp-v0.2.3) (2026-01-06)
 
 
