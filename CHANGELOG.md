@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.3.0...copick-mcp-v0.3.1) (2026-01-29)
+
+
+### 🐞 Bug Fixes
+
+* Allow proper introspection of multi-level click-groups.  ([#23](https://github.com/copick/copick-mcp/issues/23)) ([18c199c](https://github.com/copick/copick-mcp/commit/18c199c357c835f4dcf7b1f84d23ec35eb6af48f))
+
 ## [0.3.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.4...copick-mcp-v0.3.0) (2026-01-29)
 
 
