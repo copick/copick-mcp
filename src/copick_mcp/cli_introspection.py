@@ -44,15 +44,29 @@ def get_all_cli_commands() -> Dict[str, Any]:
 
         for cmd_name in temp_cli.commands:
             cmd = temp_cli.commands[cmd_name]
-            commands["main"].append(
-                {
-                    "name": cmd_name,
-                    "short_help": cmd.get_short_help_str(limit=120)
-                    if hasattr(cmd, "get_short_help_str")
-                    else cmd.short_help,
-                    "help": cmd.help,
-                },
-            )
+            cmd_info = {
+                "name": cmd_name,
+                "short_help": cmd.get_short_help_str(limit=120)
+                if hasattr(cmd, "get_short_help_str")
+                else cmd.short_help,
+                "help": cmd.help,
+            }
+
+            # If it's a Click Group, include its subcommands
+            if isinstance(cmd, click.Group) and cmd.commands:
+                cmd_info["subcommands"] = []
+                for sub_name, sub_cmd in cmd.commands.items():
+                    cmd_info["subcommands"].append(
+                        {
+                            "name": sub_name,
+                            "short_help": sub_cmd.get_short_help_str(limit=120)
+                            if hasattr(sub_cmd, "get_short_help_str")
+                            else sub_cmd.short_help,
+                            "path": f"{cmd_name}.{sub_name}",
+                        },
+                    )
+
+            commands["main"].append(cmd_info)
     except Exception as e:
         commands["main"].append({"error": f"Failed to load core commands: {str(e)}"})
 
@@ -106,7 +120,7 @@ def get_command_parameters(click_command: click.Command) -> List[Dict[str, Any]]
             "param_type": type(param).__name__,
             "required": param.required,
             "default": param.default if param.default is not None else None,
-            "help": param.help if param.help else "",
+            "help": getattr(param, "help", "") or "",
         }
 
         # Add type information
@@ -143,12 +157,53 @@ def get_command_info(command_path: str) -> Dict[str, Any]:
     try:
         # Parse the command path
         parts = command_path.split(".")
+
+        # Build temp CLI to access core commands
+        @click.group()
+        def temp_cli():
+            pass
+
+        temp_cli = add_core_commands(temp_cli)
+
         if len(parts) == 1:
-            # Main command
+            # Main command or group
             group_name = "main"
             cmd_name = parts[0]
         elif len(parts) == 2:
-            # Subcommand (e.g., convert.picks2seg)
+            # Could be:
+            # 1. Click Group.subcommand (e.g., "add.picks", "config.new")
+            # 2. Plugin group.command (e.g., "convert.picks2seg")
+
+            # First, check if it's a subcommand of a main CLI Click Group
+            if parts[0] in temp_cli.commands:
+                parent_cmd = temp_cli.commands[parts[0]]
+                if isinstance(parent_cmd, click.Group) and parts[1] in parent_cmd.commands:
+                    # It's a subcommand of a Click Group (e.g., add.picks)
+                    command = parent_cmd.commands[parts[1]]
+
+                    # Extract command information
+                    command_info = {
+                        "success": True,
+                        "name": command.name,
+                        "group": parts[0],
+                        "help": command.help if command.help else "",
+                        "short_help": (
+                            command.get_short_help_str(limit=200)
+                            if hasattr(command, "get_short_help_str")
+                            else command.short_help
+                        ),
+                        "parameters": get_command_parameters(command),
+                    }
+
+                    # Add usage example if available in help text
+                    if command.help and "Examples:" in command.help:
+                        help_parts = command.help.split("Examples:")
+                        if len(help_parts) > 1:
+                            command_info["examples"] = help_parts[1].strip()
+
+                    return command_info
+
+            # Otherwise treat as plugin group.command
             group_name = parts[0]
             cmd_name = parts[1]
         else:
@@ -159,11 +214,6 @@ def get_command_info(command_path: str) -> Dict[str, Any]:
 
         if group_name == "main":
             # Get core command
-            @click.group()
-            def temp_cli():
-                pass
-
-            temp_cli = add_core_commands(temp_cli)
             if cmd_name in temp_cli.commands:
                 command = temp_cli.commands[cmd_name]
         else:
