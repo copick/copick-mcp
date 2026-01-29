@@ -10,7 +10,7 @@ A Model Context Protocol (MCP) server for Copick that provides two sets of tools
 - **CLI discovery** - Dynamically discover all available copick CLI commands with full documentation
 - **Command validation** - Validate copick CLI command syntax using Click's native parsing
 - **Smart caching** - Efficient caching of copick project roots
-- **Easy setup** - Simple CLI for registering with Claude Desktop
+- **Easy setup** - Simple CLI for registering with Claude Desktop or Claude Code
 
 ## Installation
 
@@ -44,13 +44,42 @@ After setup:
 2. The Copick MCP tools should now be available
 3. The server starts automatically when Claude Desktop connects
 
+### Register with Claude Code
+
+The MCP server can also be registered with Claude Code, either globally or for a specific project:
+
+```bash
+# Global setup (available in all Claude Code sessions)
+copick setup mcp --target code-global
+
+# Project-specific setup (creates .mcp.json in current directory)
+copick setup mcp --target code-project
+
+# Project-specific setup for a different directory
+copick setup mcp --target code-project --project-path /path/to/project
+
+# Check status for Claude Code
+copick setup mcp-status --target code-global
+copick setup mcp-status --target code-project
+```
+
+**Target options:**
+- `desktop` (default) - Claude Desktop application
+- `code-global` - Claude Code global config (`~/.claude.json`)
+- `code-project` - Claude Code project-specific config (`.mcp.json` in project root)
+
 ### Manual Configuration (Optional)
 
-If you prefer manual setup, add this to your Claude Desktop configuration file:
+If you prefer manual setup, add the following configuration to the appropriate file:
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Claude Desktop:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
 
-**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
+**Claude Code:**
+- Global: `~/.claude.json`
+- Project-specific: `.mcp.json` in your project root
 
 ```json
 {
@@ -241,11 +270,19 @@ copick convert mesh2seg --config /path/to/config.json \
 ## Management Commands
 
 ```bash
-# Check MCP server status
+# Check MCP server status (Claude Desktop)
 copick setup mcp-status
 
-# Remove MCP server configuration
+# Check status for Claude Code
+copick setup mcp-status --target code-global
+copick setup mcp-status --target code-project
+
+# Remove MCP server configuration (Claude Desktop)
 copick setup mcp-remove --server-name "copick-mcp"
+
+# Remove from Claude Code
+copick setup mcp-remove --server-name "copick-mcp" --target code-global
+copick setup mcp-remove --server-name "copick-mcp" --target code-project
 
 # Force removal without confirmation
 copick setup mcp-remove --server-name "copick-mcp" --force
