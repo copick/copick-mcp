@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.4...copick-mcp-v0.3.0) (2026-01-29)
+
+
+### ✨ Features
+
+* Add support for adding copick-mcp to claude code from CLI. ([#20](https://github.com/copick/copick-mcp/issues/20)) ([a60eb53](https://github.com/copick/copick-mcp/commit/a60eb53773098b0fb742cf04409ce0f46918f4d2))
+
+
+### 🐞 Bug Fixes
+
+* Update README to reflect changes to setup commands.  ([#22](https://github.com/copick/copick-mcp/issues/22)) ([119fb8d](https://github.com/copick/copick-mcp/commit/119fb8dbbd0cf4bbab15cef52f44e962b448b027))
+
 ## [0.2.4](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.2.3...copick-mcp-v0.2.4) (2026-01-26)
 
 
