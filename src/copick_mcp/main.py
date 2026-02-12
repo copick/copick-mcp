@@ -6,8 +6,28 @@ from typing import Any, Dict, Optional
 import copick
 from fastmcp import FastMCP
 
+# Copick conventions and constraints for LLM context
+COPICK_INSTRUCTIONS = """Copick Naming Conventions:
+- UNDERSCORES ARE FORBIDDEN in: object_name, user_id, session_id, segmentation names
+- Invalid characters (< > : " / \\ | ? * whitespace _) are replaced with dashes
+
+Label Constraints:
+- Label 0 is reserved for background (cannot be used for objects)
+- Labels must be unique across all objects in a project
+
+Required Fields:
+- Picks: object_name (must exist in config), session_id, user_id
+- Meshes: object_name (must exist in config), session_id, user_id
+- Segmentations: voxel_size, name, session_id, is_multilabel, user_id
+- For non-multilabel segmentations, name must match a pickable object
+
+Default Behavior:
+- user_id defaults to root.config.user_id if not provided
+- Use exist_ok=True for idempotent operations
+"""
+
 # Initialize FastMCP server
-mcp = FastMCP("Copick MCP Server")
+mcp = FastMCP("Copick MCP Server", instructions=COPICK_INSTRUCTIONS)
 
 # Configure logging
 logger = logging.getLogger("copick-mcp")
