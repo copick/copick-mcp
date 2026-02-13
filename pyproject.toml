@@ -30,7 +30,7 @@ classifiers = [
 ]
 keywords = ["copick", "cryoet", "cryo-et", "tomography", "annotation", "mcp", "model-context-protocol"]
 dependencies = [
-    "copick>=1.15.0",
+    "copick>=1.20.0",
     "copick-utils",
     "copick-torch",
     "fastmcp>=2.0.0",
