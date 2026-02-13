@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.4.0...copick-mcp-v0.5.0) (2026-02-13)
+
+
+### ✨ Features
+
+* Update dependencies. ([#26](https://github.com/copick/copick-mcp/issues/26)) ([17fdefc](https://github.com/copick/copick-mcp/commit/17fdefcc09b545475ea8d2cf5d5c25d8bd617224))
+
 ## [0.4.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.3.0...copick-mcp-v0.4.0) (2026-02-12)
 
 
