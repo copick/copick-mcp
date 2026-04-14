@@ -1,10 +1,24 @@
 """Copick MCP Server - FastMCP server providing data exploration and CLI introspection tools."""
 
 import logging
+import sys
 from typing import Any, Dict, Optional
 
 import copick
 from fastmcp import FastMCP
+
+# Fix: `import copick` installs a RichHandler on the root logger that writes to
+# stdout (via copick.util.log.get_logger). This corrupts the MCP stdio JSON-RPC
+# transport. Redirect all root logger handlers to stderr and suppress noisy
+# dependency loggers (gql, httpx, etc.) that would otherwise pollute output.
+for _h in logging.root.handlers:
+    if hasattr(_h, "console") and hasattr(_h.console, "file"):
+        _h.console.file = sys.stderr
+    elif isinstance(_h, logging.StreamHandler):
+        _h.setStream(sys.stderr)
+
+for _noisy_logger in ("gql", "gql.transport", "httpx", "httpcore", "fsspec", "urllib3"):
+    logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
 
 # Copick conventions and constraints for LLM context
 COPICK_INSTRUCTIONS = """Copick Naming Conventions:
@@ -31,7 +45,7 @@ mcp = FastMCP("Copick MCP Server", instructions=COPICK_INSTRUCTIONS)
 
 # Configure logging
 logger = logging.getLogger("copick-mcp")
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stderr)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
