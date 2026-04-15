@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.5.0...copick-mcp-v0.5.1) (2026-04-14)
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.13.0 to 6.15.1 ([#32](https://github.com/copick/copick-mcp/issues/32)) ([c0176bb](https://github.com/copick/copick-mcp/commit/c0176bb0a4f4c31b3483c5b7d9261d970f8256e6))
+* bump chanzuckerberg/github-actions from 6.15.1 to 6.20.0 ([#34](https://github.com/copick/copick-mcp/issues/34)) ([aa45dc4](https://github.com/copick/copick-mcp/commit/aa45dc4b20090f5b0f76de243de29cdc7e1f918d))
+* Redirect all logging to stderr to prevent MCP stdio transport corruption ([#35](https://github.com/copick/copick-mcp/issues/35)) ([8562cb2](https://github.com/copick/copick-mcp/commit/8562cb2067228fc799ce3e011c9a75515f2cefcb))
+
 ## [0.5.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.4.0...copick-mcp-v0.5.0) (2026-02-13)
 
 
