@@ -38,6 +38,10 @@ Required Fields:
 Default Behavior:
 - user_id defaults to root.config.user_id if not provided
 - Use exist_ok=True for idempotent operations
+
+nnUNet Training:
+- For nnUNet training workflows (preparation, training, inference), call get_nnunet_workflow_info().
+  That tool checks whether copick-torch is installed and returns the full step-by-step workflow.
 """
 
 # Initialize FastMCP server
@@ -597,6 +601,124 @@ def validate_copick_cli_command(command_string: str) -> Dict[str, Any]:
     except Exception as e:
         logger.exception(f"Failed to validate CLI command: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+# ============================================================================
+# copick-torch / nnUNet Workflow
+# ============================================================================
+
+NNUNET_WORKFLOW_DOCS = """nnUNet Training Workflow (copick-torch)
+
+The nnUNet workflow has three steps: prepare → train → inference.
+
+STEP 1 — Prepare: Convert CoPick project to nnUNet format
+  Command: copick convert nnunet
+  Purpose: Exports tomograms and segmentation masks to nnUNet raw dataset structure (imagesTr/labelsTr/imagesTs .nii.gz files).
+  Required params:
+    -c / --config PATH           CoPick config.json
+    -n / --dataset-name STR      nnUNet dataset name (becomes Dataset{id}_{name})
+  Optional params:
+    -uri / --tomo-uri STR        Tomogram URI, format "algorithm@voxel_spacing" (default: "wbp@10.0")
+    -sinfo / --seg-info STR      Segmentation as "name" or "name,user_id,session_id" (default: "targets")
+    -train / --train-run-ids     Comma-separated run IDs for training (default: all except test set)
+    -test / --test-run-ids       Comma-separated run IDs for test set
+    -id / --dataset-id INT       Numeric dataset ID (default: 1)
+    -o / --output PATH           Output directory for nnunet_raw
+    -j / --num-workers INT       Parallel workers (default: 4)
+  Example:
+    copick convert nnunet \\
+      -c /path/to/config.json \\
+      -n my-segmentation \\
+      -uri "wbp@10.0" \\
+      -sinfo "targets,root,default" \\
+      -train run1,run2,run3 \\
+      -test run4,run5 \\
+      -o /path/to/nnunet-raw
+
+STEP 2 — Train: Plan, preprocess, and train nnUNet
+  Command: copick training nnunet
+  Purpose: Runs nnUNetv2 planning + preprocessing, then trains one model per requested fold.
+  GPU-intensive (hours) — always suggest as a copy-pasteable command block; NEVER execute directly
+  unless the user explicitly says "run it", "go ahead", or "execute it".
+  Required params:
+    -n / --dataset-name STR      Must match the name used in prepare
+    -r / --raw PATH              Path to nnunet_raw directory
+    -pre / --preprocessed PATH   Path to nnunet_preprocessed directory
+    -o / --output PATH           Path to nnunet_results directory
+  Optional params:
+    -id / --dataset-id INT       Must match the ID used in prepare (default: 1)
+    -cfg / --configuration       "3d_fullres" (default), "3d_lowres", or "3d_cascade_fullres"
+    -f / --folds LIST            Folds to train, e.g. "0" or "0,1,2,3,4" (default: "0")
+    -m / --model CHOICE          Architecture: "nnunet" (default), "resnecl", "mednext-s/b/m/l"
+    -skip / --skip-preprocess    Skip planning/preprocessing if already done
+  Example:
+    copick training nnunet \\
+      -n my-segmentation \\
+      -r /path/to/nnunet-raw \\
+      -pre /path/to/nnunet-preprocessed \\
+      -o /path/to/nnunet-results \\
+      -cfg 3d_fullres \\
+      -f 0,1,2,3,4 \\
+      -m nnunet
+
+STEP 3 — Inference: Run segmentation on CoPick tomograms
+  Command: copick inference nnunet
+  Purpose: Sliding-window inference on CoPick tomograms; writes predictions back as segmentations.
+    Supports fold ensembling (pass multiple -w flags) and multi-GPU batch processing.
+  GPU-intensive — always suggest as a copy-pasteable command block; NEVER execute directly
+  unless the user explicitly says "run it", "go ahead", or "execute it".
+  Required params:
+    -c / --config PATH           CoPick config.json
+    -p / --plans PATH            Path to nnUNet plans.json (in nnunet_results)
+    -d / --dataset PATH          Path to nnUNet dataset.json (in nnunet_results)
+    -w / --weights PATH          Checkpoint .pth file (repeat flag for fold ensembling)
+  Optional params:
+    -turi / --tomo-uri STR       Tomogram to predict, format "algorithm@voxel_spacing" (default: "wbp@10.0")
+    --tta BOOL                   Test-time augmentation via mirroring (default: True)
+    --run-ids / -runs STR        Comma-separated CoPick run IDs to predict (default: all runs)
+    -suri / --seg-uri STR        Output segmentation URI "name:user_id/session_id" (default: "predict:nnunet/1")
+  Single-fold example:
+    copick inference nnunet \\
+      -c /path/to/config.json \\
+      -p /path/to/nnunet-results/Dataset001_my-segmentation/nnUNetTrainer__nnUNetPlans__3d_fullres/plans.json \\
+      -d /path/to/nnunet-raw/Dataset001_my-segmentation/dataset.json \\
+      -w /path/to/nnunet-results/.../fold_0/checkpoint_best.pth \\
+      -suri "predictions:nnunet/1"
+  Fold-ensembling example (pass -w once per fold):
+    copick inference nnunet \\
+      -c /path/to/config.json \\
+      -p /path/to/plans.json \\
+      -d /path/to/dataset.json \\
+      -w fold_0/checkpoint_best.pth \\
+      -w fold_1/checkpoint_best.pth \\
+      -w fold_2/checkpoint_best.pth \\
+      -suri "predictions-ensemble:nnunet/1"
+"""
+
+
+@mcp.tool()
+def get_nnunet_workflow_info() -> Dict[str, Any]:
+    """Get the full nnUNet training workflow documentation for copick-torch, including
+    preparation, training, and inference steps with all parameters and examples.
+    Also checks whether copick-torch is installed.
+
+    Returns:
+        Dictionary with installation status and complete workflow documentation.
+    """
+    import importlib.util
+
+    installed = importlib.util.find_spec("copick_torch") is not None
+    result: Dict[str, Any] = {
+        "copick_torch_installed": installed,
+        "workflow": NNUNET_WORKFLOW_DOCS,
+    }
+    if not installed:
+        result["install_instructions"] = (
+            "copick-torch is not installed. Run: pip install copick-torch\n"
+            "copick-torch provides the 'copick convert nnunet', 'copick training nnunet', "
+            "and 'copick inference nnunet' commands required for this workflow."
+        )
+    return result
 
 
 # Run the MCP server
