@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.5.1...copick-mcp-v0.6.0) (2026-06-09)
+
+
+### ✨ Features
+
+* add nnUNet training workflow tool and drop copick-torch dependency ([#38](https://github.com/copick/copick-mcp/issues/38)) ([74addd8](https://github.com/copick/copick-mcp/commit/74addd8276d5f0201533455f3947b4b02f077f29))
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.20.0 to 6.21.0 ([#37](https://github.com/copick/copick-mcp/issues/37)) ([bc253f3](https://github.com/copick/copick-mcp/commit/bc253f3be5753aace2b12548c159fdb8ab0ff4ee))
+* bump googleapis/release-please-action from 4 to 5 ([#36](https://github.com/copick/copick-mcp/issues/36)) ([5d03a7e](https://github.com/copick/copick-mcp/commit/5d03a7eb64141aecfd987ad8f78e1727f09706a7))
+
 ## [0.5.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.5.0...copick-mcp-v0.5.1) (2026-04-14)
 
 
