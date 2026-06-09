@@ -31,6 +31,7 @@ classifiers = [
 keywords = ["copick", "cryoet", "cryo-et", "tomography", "annotation", "mcp", "model-context-protocol"]
 dependencies = [
     "copick>=1.20.0",
+    "copick-utils",
     "fastmcp>=2.0.0",
     "click>=8.0"
 ]
@@ -52,6 +53,9 @@ dev = [
 test = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+]
+torch = [
+    "copick-torch",
 ]
 
 [project.urls]
