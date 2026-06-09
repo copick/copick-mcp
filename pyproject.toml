@@ -32,9 +32,8 @@ keywords = ["copick", "cryoet", "cryo-et", "tomography", "annotation", "mcp", "m
 dependencies = [
     "copick>=1.20.0",
     "copick-utils",
-    "copick-torch",
     "fastmcp>=2.0.0",
-    "click>=8.0",
+    "click>=8.0"
 ]
 
 [project.entry-points."copick.setup.commands"]
@@ -54,6 +53,9 @@ dev = [
 test = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+]
+torch = [
+    "copick-torch",
 ]
 
 [project.urls]
