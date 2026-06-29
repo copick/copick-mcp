@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.6.0...copick-mcp-v0.6.1) (2026-06-29)
+
+
+### 🐞 Bug Fixes
+
+* bump actions/checkout from 6 to 7 ([#41](https://github.com/copick/copick-mcp/issues/41)) ([7cc0f35](https://github.com/copick/copick-mcp/commit/7cc0f3591e07affb1d780be0af5701b1cb2b5a69))
+* bump chanzuckerberg/github-actions from 6.21.0 to 6.22.1 ([#40](https://github.com/copick/copick-mcp/issues/40)) ([10ff9c4](https://github.com/copick/copick-mcp/commit/10ff9c4a3c0a2adf752a0faefc047c7773f09b10))
+
 ## [0.6.0](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.5.1...copick-mcp-v0.6.0) (2026-06-09)
 
 
