@@ -721,6 +721,16 @@ def get_nnunet_workflow_info() -> Dict[str, Any]:
     return result
 
 
+# ============================================================================
+# copick-dag Pipeline Tools (M5)
+# ============================================================================
+# Register the graph authoring/inspection/execution tools. Deferred import avoids import-order
+# coupling; graph_tools depends on copick_dag.api, not on this module.
+from copick_mcp import graph_tools  # noqa: E402
+
+graph_tools.register(mcp, logger)
+
+
 # Run the MCP server
 if __name__ == "__main__":
     mcp.run(transport="stdio")
