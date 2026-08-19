@@ -128,7 +128,8 @@ def get_run_details(config_path: str, run_name: str) -> Dict[str, Any]:
         # Get picks information
         picks_list = []
         for pick in run.picks:
-            num_points = len(pick.points) if pick.meta.points else 0
+            points = pick.points or []
+            num_points = len(points)
             picks_list.append(
                 {
                     "object_name": pick.pickable_object_name,
@@ -297,7 +298,8 @@ def list_picks(
 
         picks_list = []
         for pick in picks:
-            num_points = len(pick.points) if pick.meta.points else 0
+            points = pick.points or []
+            num_points = len(points)
             pick_dict = {
                 "object_name": pick.pickable_object_name,
                 "user_id": pick.user_id,
@@ -308,7 +310,7 @@ def list_picks(
             # Include first few points if available
             if num_points > 0:
                 sample_points = []
-                for point in pick.points[:3]:  # First 3 points
+                for point in points[:3]:  # First 3 points
                     sample_points.append({"x": point.location.x, "y": point.location.y, "z": point.location.z})
                 pick_dict["sample_points"] = sample_points
 
@@ -714,7 +716,7 @@ def get_nnunet_workflow_info() -> Dict[str, Any]:
     }
     if not installed:
         result["install_instructions"] = (
-            "copick-torch is not installed. Run: pip install copick-torch\n"
+            'copick-torch is not installed. Run: pip install "copick-mcp[torch]"\n'
             "copick-torch provides the 'copick convert nnunet', 'copick training nnunet', "
             "and 'copick inference nnunet' commands required for this workflow."
         )
