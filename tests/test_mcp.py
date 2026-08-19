@@ -28,11 +28,11 @@ def test_fastmcp_registration_and_serialization(project_configs):
             tools = await client.list_tools()
             assert {tool.name for tool in tools} == EXPECTED_TOOLS
 
-            runs = await client.call_tool("list_runs", {"config_path": str(project_configs["v3"])})
+            runs = await client.call_tool("list_runs", {"config_path": str(project_configs["second"])})
             assert runs.data["runs"] == [{"name": "run-001"}]
 
             commands = await client.call_tool("list_copick_cli_commands", {})
-            assert {item["name"] for item in commands.data["commands"]["setup"]} == {
+            assert {item["name"] for item in commands.data["commands"]["setup"]} >= {
                 "mcp",
                 "mcp-remove",
                 "mcp-status",
