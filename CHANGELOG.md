@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-alpha.3](https://github.com/copick/copick-mcp/compare/copick-mcp-v2.0.0-alpha.2...copick-mcp-v2.0.0-alpha.3) (2026-08-19)
+
+
+### 🐞 Bug Fixes
+
+* synchronize package version in releases ([#64](https://github.com/copick/copick-mcp/issues/64)) ([8101cb3](https://github.com/copick/copick-mcp/commit/8101cb3e31b00d536952202346670efdf1b1f1d2))
+
 ## [2.0.0-alpha.2](https://github.com/copick/copick-mcp/compare/copick-mcp-v2.0.0-alpha.1...copick-mcp-v2.0.0-alpha.2) (2026-08-19)
 
 
