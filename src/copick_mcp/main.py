@@ -551,16 +551,19 @@ def get_json_config(config_path: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def list_copick_cli_commands() -> Dict[str, Any]:
+def list_copick_cli_commands(include_help: bool = False) -> Dict[str, Any]:
     """List all available copick CLI commands hierarchically.
 
+    Args:
+        include_help: Include full command help in the listing. Defaults to compact summaries.
+
     Returns:
-        Dictionary containing complete command tree with groups and subcommands.
+        Dictionary containing the command tree with groups and subcommands.
     """
     try:
         from copick_mcp.cli_introspection import get_all_cli_commands
 
-        commands = get_all_cli_commands()
+        commands = get_all_cli_commands(include_help=include_help)
         return {"success": True, "commands": commands}
     except Exception as e:
         logger.exception(f"Failed to list CLI commands: {str(e)}")
