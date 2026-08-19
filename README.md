@@ -1,6 +1,7 @@
 # Copick MCP Server
 
 A Model Context Protocol (MCP) server for Copick that provides two sets of tools:
+
 1. **Data Exploration Tools** - Browse and query copick project contents (read-only)
 2. **CLI Introspection Tools** - Discover and validate copick CLI commands for building processing pipelines
 
@@ -15,9 +16,36 @@ A Model Context Protocol (MCP) server for Copick that provides two sets of tools
 ## Installation
 
 ```bash
-cd copick-mcp
-pip install -e .
+pip install copick-mcp
 ```
+
+During the 2.0 prerelease series, opt in explicitly:
+
+```bash
+pip install --pre "copick-mcp>=2.0.0a1,<3"
+```
+
+The optional torch command integration is available with:
+
+```bash
+pip install "copick-mcp[torch]"
+```
+
+For the matching 2.0 prerelease stack, use
+`pip install --pre "copick-mcp[torch]>=2.0.0a1,<3"`.
+
+## Copick 2.0 and Zarr compatibility
+
+The copick-mcp 2.0 line requires Python 3.11 or newer, copick 2.0, and
+copick-utils 2.0. Its data-exploration tools use copick's entity and metadata
+APIs, so they can inspect both legacy OME-Zarr 0.4 / Zarr v2 projects and
+OME-Zarr 0.5 / Zarr v3 projects supported by copick.
+
+copick-mcp does not open arrays, interpret OME-Zarr layouts, or write project
+data. New output format and storage-backend behavior are owned by copick and
+the command plugin being described. Installing the `torch` extra adds the
+copick-torch 2.0 command plugins and enables installed nnUNet workflow status;
+no model is loaded or executed by introspection.
 
 ## Quick Setup
 
@@ -163,6 +191,11 @@ List all available copick CLI commands hierarchically organized by group.
   - `process`: Processing commands (downsample, fit-spline, hull, skeletonize, etc.)
   - `convert`: Conversion commands (picks2seg, mesh2seg, seg2picks, etc.)
   - `logical`: Logical operations (clipmesh, clippicks, meshop, segop, etc.)
+  - `setup`: Integration commands, including copick-mcp registration
+  - `download`: Download commands contributed by installed plugins
+
+The plugin-group inventory comes from copick itself. Compatible future groups
+therefore appear in MCP discovery without a matching hardcoded list here.
 
 #### `get_copick_cli_command_info`
 Get detailed information about a specific command.
@@ -302,16 +335,16 @@ copick setup mcp-remove --server-name "copick-mcp" --force
 ```bash
 # Install in development mode
 cd copick-mcp
-pip install -e ".[dev]"
+uv sync --locked --extra test --extra dev
 
-# Format code
-black src/
+# Format and lint
+uv run pre-commit run --all-files
 
-# Lint
-ruff check --fix src/
+# Run tests
+uv run pytest
 
 # Run the server locally for testing
-python -m copick_mcp.main
+uv run python -m copick_mcp.main
 ```
 
 ## License

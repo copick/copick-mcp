@@ -1,117 +1,125 @@
 """CLI introspection utilities for discovering and analyzing copick CLI commands."""
 
+import json
 import shlex
-from typing import Any, Dict, List
+from contextlib import redirect_stderr, redirect_stdout
+from enum import Enum
+from io import StringIO
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import click
-from copick.cli.cli import (
-    add_core_commands,
-    add_plugin_commands,
-    convert,
-    evaluation,
-    inference,
-    logical,
-    process,
-    training,
-)
-from copick.cli.ext import load_plugin_commands
+from copick.cli.cli import add_core_commands, add_plugin_commands
+from copick.cli.ext import PLUGIN_GROUPS, load_plugin_commands
+
+
+def _core_cli() -> click.Group:
+    """Build an isolated Click group containing copick's core commands."""
+
+    @click.group()
+    def cli():
+        pass
+
+    return add_core_commands(cli)
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert Click metadata to values that MCP result schemas can encode."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Enum):
+        return _json_safe(value.value)
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_json_safe(item) for item in value]
+    if callable(value):
+        return getattr(value, "__name__", str(value))
+
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return value
+
+
+def _command_summary(command: click.Command, package: Optional[str] = None) -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "name": command.name,
+        "short_help": command.get_short_help_str(limit=120),
+        "help": command.help or "",
+    }
+    if package is not None:
+        summary["package"] = package
+    return summary
+
+
+def _command_details(
+    command: click.Command,
+    group: str,
+    package: Optional[str] = None,
+) -> Dict[str, Any]:
+    details: Dict[str, Any] = {
+        "success": True,
+        "name": command.name,
+        "group": group,
+        "help": command.help or "",
+        "short_help": command.get_short_help_str(limit=200),
+        "parameters": get_command_parameters(command),
+    }
+    if package is not None:
+        details["package"] = package
+    if command.help and "Examples:" in command.help:
+        details["examples"] = command.help.split("Examples:", maxsplit=1)[1].strip()
+    return details
 
 
 def get_all_cli_commands() -> Dict[str, Any]:
-    """Discover all copick CLI commands using load_plugin_commands().
+    """Discover core commands and every plugin group declared by copick."""
+    commands: Dict[str, Any] = {group: [] for group in PLUGIN_GROUPS}
 
-    Returns:
-        Dictionary containing hierarchical structure of all commands with metadata.
-    """
-    commands = {
-        "main": [],
-        "inference": [],
-        "training": [],
-        "evaluation": [],
-        "process": [],
-        "convert": [],
-        "logical": [],
-    }
-
-    # Get main commands (core commands)
     try:
-        # Create a temporary group to get core commands
-        @click.group()
-        def temp_cli():
-            pass
+        core_cli = _core_cli()
+        main_commands = {name: _command_summary(command) for name, command in core_cli.commands.items()}
 
-        temp_cli = add_core_commands(temp_cli)
+        # Top-level plugins share the main namespace and override a core command
+        # with the same name in the assembled copick CLI.
+        for command, package_name in load_plugin_commands("main"):
+            main_commands[command.name] = _command_summary(command, package_name)
 
-        for cmd_name in temp_cli.commands:
-            cmd = temp_cli.commands[cmd_name]
-            cmd_info = {
-                "name": cmd_name,
-                "short_help": cmd.get_short_help_str(limit=120)
-                if hasattr(cmd, "get_short_help_str")
-                else cmd.short_help,
-                "help": cmd.help,
-            }
+        for name, summary in main_commands.items():
+            command = core_cli.commands.get(name)
+            if isinstance(command, click.Group) and command.commands:
+                summary["subcommands"] = [
+                    {
+                        "name": sub_name,
+                        "short_help": subcommand.get_short_help_str(limit=120),
+                        "path": f"{name}.{sub_name}",
+                    }
+                    for sub_name, subcommand in command.commands.items()
+                ]
 
-            # If it's a Click Group, include its subcommands
-            if isinstance(cmd, click.Group) and cmd.commands:
-                cmd_info["subcommands"] = []
-                for sub_name, sub_cmd in cmd.commands.items():
-                    cmd_info["subcommands"].append(
-                        {
-                            "name": sub_name,
-                            "short_help": sub_cmd.get_short_help_str(limit=120)
-                            if hasattr(sub_cmd, "get_short_help_str")
-                            else sub_cmd.short_help,
-                            "path": f"{cmd_name}.{sub_name}",
-                        },
-                    )
+        commands["main"] = sorted(main_commands.values(), key=lambda item: item["name"])
+    except Exception as exc:
+        commands["main"].append({"error": f"Failed to load core commands: {str(exc)}"})
 
-            commands["main"].append(cmd_info)
-    except Exception as e:
-        commands["main"].append({"error": f"Failed to load core commands: {str(e)}"})
-
-    # Get plugin commands for each group
-    groups = {
-        "inference": inference,
-        "training": training,
-        "evaluation": evaluation,
-        "process": process,
-        "convert": convert,
-        "logical": logical,
-    }
-
-    for group_name, _group_cmd in groups.items():
+    # PLUGIN_GROUPS is the core-owned CLI contract. New groups appear here
+    # automatically rather than requiring a matching MCP code change.
+    for group_name in (group for group in PLUGIN_GROUPS if group != "main"):
         try:
-            plugin_commands = load_plugin_commands(group_name)
-            if plugin_commands:
-                for command, package_name in plugin_commands:
-                    commands[group_name].append(
-                        {
-                            "name": command.name,
-                            "short_help": (
-                                command.get_short_help_str(limit=120)
-                                if hasattr(command, "get_short_help_str")
-                                else command.short_help
-                            ),
-                            "help": command.help,
-                            "package": package_name,
-                        },
-                    )
-        except Exception as e:
-            commands[group_name].append({"error": f"Failed to load {group_name} commands: {str(e)}"})
+            for command, package_name in load_plugin_commands(group_name):
+                commands[group_name].append(_command_summary(command, package_name))
+            commands[group_name].sort(key=lambda item: item["name"])
+        except Exception as exc:
+            commands[group_name].append({"error": f"Failed to load {group_name} commands: {str(exc)}"})
 
     return commands
 
 
 def get_command_parameters(click_command: click.Command) -> List[Dict[str, Any]]:
-    """Extract all parameters from a Click command.
-
-    Args:
-        click_command: The Click command object to extract parameters from.
-
-    Returns:
-        List of dictionaries containing parameter information.
-    """
+    """Extract JSON-serializable metadata for every Click parameter."""
     params = []
 
     for param in click_command.params:
@@ -119,24 +127,21 @@ def get_command_parameters(click_command: click.Command) -> List[Dict[str, Any]]
             "name": param.name,
             "param_type": type(param).__name__,
             "required": param.required,
-            "default": param.default if param.default is not None else None,
+            "default": _json_safe(param.default),
             "help": getattr(param, "help", "") or "",
         }
 
-        # Add type information
         if hasattr(param, "type"):
             param_info["type"] = str(param.type)
 
-        # Add option flags for options
         if isinstance(param, click.Option):
-            param_info["opts"] = param.opts
+            param_info["opts"] = list(param.opts)
             param_info["is_flag"] = param.is_flag
             if param.multiple:
                 param_info["multiple"] = True
-            if hasattr(param, "type") and isinstance(param.type, click.Choice):
-                param_info["choices"] = param.type.choices
+            if isinstance(param.type, click.Choice):
+                param_info["choices"] = _json_safe(param.type.choices)
 
-        # Add argument information
         if isinstance(param, click.Argument):
             param_info["is_argument"] = True
 
@@ -146,207 +151,117 @@ def get_command_parameters(click_command: click.Command) -> List[Dict[str, Any]]
 
 
 def get_command_info(command_path: str) -> Dict[str, Any]:
-    """Get detailed information about a specific copick CLI command.
-
-    Args:
-        command_path: Path to the command (e.g., "convert.picks2seg" or "add").
-
-    Returns:
-        Dictionary containing command information including parameters, help text, etc.
-    """
+    """Return details for a core, nested-core, or installed plugin command."""
     try:
-        # Parse the command path
         parts = command_path.split(".")
-
-        # Build temp CLI to access core commands
-        @click.group()
-        def temp_cli():
-            pass
-
-        temp_cli = add_core_commands(temp_cli)
-
-        if len(parts) == 1:
-            # Main command or group
-            group_name = "main"
-            cmd_name = parts[0]
-        elif len(parts) == 2:
-            # Could be:
-            # 1. Click Group.subcommand (e.g., "add.picks", "config.new")
-            # 2. Plugin group.command (e.g., "convert.picks2seg")
-
-            # First, check if it's a subcommand of a main CLI Click Group
-            if parts[0] in temp_cli.commands:
-                parent_cmd = temp_cli.commands[parts[0]]
-                if isinstance(parent_cmd, click.Group) and parts[1] in parent_cmd.commands:
-                    # It's a subcommand of a Click Group (e.g., add.picks)
-                    command = parent_cmd.commands[parts[1]]
-
-                    # Extract command information
-                    command_info = {
-                        "success": True,
-                        "name": command.name,
-                        "group": parts[0],
-                        "help": command.help if command.help else "",
-                        "short_help": (
-                            command.get_short_help_str(limit=200)
-                            if hasattr(command, "get_short_help_str")
-                            else command.short_help
-                        ),
-                        "parameters": get_command_parameters(command),
-                    }
-
-                    # Add usage example if available in help text
-                    if command.help and "Examples:" in command.help:
-                        help_parts = command.help.split("Examples:")
-                        if len(help_parts) > 1:
-                            command_info["examples"] = help_parts[1].strip()
-
-                    return command_info
-
-            # Otherwise treat as plugin group.command
-            group_name = parts[0]
-            cmd_name = parts[1]
-        else:
+        if len(parts) not in (1, 2) or any(not part for part in parts):
             return {"success": False, "error": f"Invalid command path: {command_path}"}
 
-        # Get the command object
-        command = None
+        core_cli = _core_cli()
 
-        if group_name == "main":
-            # Get core command
-            if cmd_name in temp_cli.commands:
-                command = temp_cli.commands[cmd_name]
-        else:
-            # Get plugin command
-            groups = {
-                "inference": "inference",
-                "training": "training",
-                "evaluation": "evaluation",
-                "process": "process",
-                "convert": "convert",
-                "logical": "logical",
+        if len(parts) == 1:
+            command = core_cli.commands.get(parts[0])
+            package = None
+            for plugin_command, package_name in load_plugin_commands("main"):
+                if plugin_command.name == parts[0]:
+                    command = plugin_command
+                    package = package_name
+                    break
+            if command is None:
+                return {"success": False, "error": f"Command not found: {command_path}"}
+            return _command_details(command, "main", package)
+
+        parent_name, command_name = parts
+        parent = core_cli.commands.get(parent_name)
+        if isinstance(parent, click.Group) and command_name in parent.commands:
+            return _command_details(parent.commands[command_name], parent_name)
+
+        if parent_name in PLUGIN_GROUPS and parent_name != "main":
+            for command, package_name in load_plugin_commands(parent_name):
+                if command.name == command_name:
+                    return _command_details(command, parent_name, package_name)
+
+        return {"success": False, "error": f"Command not found: {command_path}"}
+    except Exception as exc:
+        return {"success": False, "error": f"Failed to get command info: {str(exc)}"}
+
+
+def _parse_command(args: List[str]) -> Dict[str, Any]:
+    """Parse a copick command without invoking its command callback."""
+
+    @click.group()
+    def cli():
+        pass
+
+    cli = add_core_commands(cli)
+    cli = add_plugin_commands(cli)
+
+    parent_context = click.Context(cli, info_name="copick")
+    command_name, command, remaining_args = cli.resolve_command(parent_context, args)
+    command_path = [command_name]
+
+    if isinstance(command, click.Group) and remaining_args and not remaining_args[0].startswith("-"):
+        group_context = click.Context(command, info_name=command_name, parent=parent_context)
+        subcommand_name, subcommand, remaining_args = command.resolve_command(group_context, remaining_args)
+        command_path.append(subcommand_name)
+        command = subcommand
+        parent_context = group_context
+
+    command_context = click.Context(command, info_name=command_path[-1], parent=parent_context)
+    try:
+        command.parse_args(command_context, remaining_args)
+    except click.exceptions.Exit as exc:
+        if exc.exit_code == 0:
+            return {
+                "success": True,
+                "valid": True,
+                "message": "Command help requested; syntax is valid",
+                "command": ".".join(command_path),
             }
-
-            if group_name in groups:
-                plugin_commands = load_plugin_commands(group_name)
-                for cmd, _package_name in plugin_commands:
-                    if cmd.name == cmd_name:
-                        command = cmd
-                        break
-
-        if command is None:
-            return {"success": False, "error": f"Command not found: {command_path}"}
-
-        # Extract command information
-        command_info = {
+        return {
             "success": True,
-            "name": command.name,
-            "group": group_name,
-            "help": command.help if command.help else "",
-            "short_help": (
-                command.get_short_help_str(limit=200) if hasattr(command, "get_short_help_str") else command.short_help
-            ),
-            "parameters": get_command_parameters(command),
+            "valid": False,
+            "error": f"Command parsing exited with status {exc.exit_code}",
+            "command": ".".join(command_path),
+            "message": "Parameter validation failed",
         }
 
-        # Add usage example if available in help text
-        if command.help and "Examples:" in command.help:
-            parts = command.help.split("Examples:")
-            if len(parts) > 1:
-                command_info["examples"] = parts[1].strip()
-
-        return command_info
-
-    except Exception as e:
-        return {"success": False, "error": f"Failed to get command info: {str(e)}"}
+    return {
+        "success": True,
+        "valid": True,
+        "message": "Command syntax is valid",
+        "command": ".".join(command_path),
+    }
 
 
 def validate_copick_cli_command(command_string: str) -> Dict[str, Any]:
-    """Validate a copick CLI command string using Click's parsing.
-
-    Args:
-        command_string: Full CLI command string (e.g., "copick convert picks2seg --config ...")
-
-    Returns:
-        Dictionary containing validation status and any error messages.
-    """
+    """Validate Click syntax without invoking commands or leaking output."""
     try:
-        # Parse the command string
         args = shlex.split(command_string)
+    except ValueError as exc:
+        return {"success": True, "valid": False, "error": str(exc), "message": "Invalid command string"}
 
-        if not args or args[0] != "copick":
-            return {"success": False, "error": "Command must start with 'copick'"}
+    if not args or args[0] != "copick":
+        return {"success": False, "error": "Command must start with 'copick'"}
+    if len(args) < 2:
+        return {"success": False, "error": "No command specified"}
 
-        if len(args) < 2:
-            return {"success": False, "error": "No command specified"}
-
-        # Build the CLI
-        @click.group()
-        def cli():
-            pass
-
-        cli = add_core_commands(cli)
-        cli = add_plugin_commands(cli)
-
-        # Create a test context
-        ctx = click.Context(cli)
-
-        # Try to parse the command
+    stdout = StringIO()
+    stderr = StringIO()
+    with redirect_stdout(stdout), redirect_stderr(stderr):
         try:
-            # Remove 'copick' from args
-            remaining_args = args[1:]
+            result = _parse_command(args[1:])
+        except click.ClickException as exc:
+            result = {
+                "success": True,
+                "valid": False,
+                "error": exc.format_message(),
+                "message": "Command not found or usage error",
+            }
+        except Exception as exc:
+            result = {"success": False, "error": f"Failed to validate command: {str(exc)}"}
 
-            # Parse the command and its arguments
-            cmd_name, cmd, remaining_args = cli.resolve_command(ctx, remaining_args)
-
-            if isinstance(cmd, click.Group) and remaining_args:
-                # It's a group command with a subcommand
-                sub_ctx = click.Context(cmd, parent=ctx)
-                sub_cmd_name, sub_cmd, sub_remaining_args = cmd.resolve_command(sub_ctx, remaining_args)
-
-                # Try to parse the parameters
-                try:
-                    # Create a context for the subcommand
-                    final_ctx = click.Context(sub_cmd, parent=sub_ctx)
-                    sub_cmd.parse_args(final_ctx, sub_remaining_args)
-
-                    return {
-                        "success": True,
-                        "valid": True,
-                        "message": "Command syntax is valid",
-                        "command": f"{cmd_name}.{sub_cmd_name}",
-                    }
-                except click.ClickException as e:
-                    return {
-                        "success": True,
-                        "valid": False,
-                        "error": str(e),
-                        "command": f"{cmd_name}.{sub_cmd_name}",
-                        "message": "Parameter validation failed",
-                    }
-            else:
-                # It's a direct command
-                try:
-                    final_ctx = click.Context(cmd, parent=ctx)
-                    cmd.parse_args(final_ctx, remaining_args)
-
-                    return {
-                        "success": True,
-                        "valid": True,
-                        "message": "Command syntax is valid",
-                        "command": cmd_name,
-                    }
-                except click.ClickException as e:
-                    return {
-                        "success": True,
-                        "valid": False,
-                        "error": str(e),
-                        "command": cmd_name,
-                        "message": "Parameter validation failed",
-                    }
-
-        except click.UsageError as e:
-            return {"success": True, "valid": False, "error": str(e), "message": "Command not found or usage error"}
-
-    except Exception as e:
-        return {"success": False, "error": f"Failed to validate command: {str(e)}"}
+    output = stdout.getvalue() + stderr.getvalue()
+    if output:
+        result["output"] = output
+    return result
