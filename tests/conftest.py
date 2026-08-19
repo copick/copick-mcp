@@ -2,30 +2,16 @@ import json
 from pathlib import Path
 
 import pytest
+import trimesh
 
 from copick_mcp import main
 
 
-def _write_zarr_root(path: Path, zarr_format: int) -> None:
+def _write_entity_directory(path: Path) -> None:
     path.mkdir(parents=True)
-    if zarr_format == 2:
-        (path / ".zgroup").write_text(json.dumps({"zarr_format": 2}))
-        (path / ".zattrs").write_text(
-            json.dumps({"multiscales": [{"version": "0.4", "datasets": [{"path": "0"}]}]}),
-        )
-    else:
-        (path / "zarr.json").write_text(
-            json.dumps(
-                {
-                    "zarr_format": 3,
-                    "node_type": "group",
-                    "attributes": {"ome": {"version": "0.5", "multiscales": [{"datasets": [{"path": "0"}]}]}},
-                },
-            ),
-        )
 
 
-def _build_project(path: Path, zarr_format: int) -> Path:
+def _build_project(path: Path) -> Path:
     run = path / "ExperimentRuns" / "run-001"
     picks = run / "Picks"
     meshes = run / "Meshes"
@@ -43,16 +29,17 @@ def _build_project(path: Path, zarr_format: int) -> Path:
         "trust_orientation": False,
     }
     (picks / "alice_manual_ribosome.json").write_text(json.dumps(pick))
-    (meshes / "alice_manual_ribosome.glb").write_bytes(b"")
+    mesh = trimesh.Trimesh(vertices=[[0, 0, 0], [1, 0, 0], [0, 1, 0]], faces=[[0, 1, 2]], process=False)
+    mesh.export(str(meshes / "alice_manual_ribosome.glb"), file_type="glb")
 
     voxel_spacing = run / "VoxelSpacing10.000"
-    _write_zarr_root(voxel_spacing / "wbp.zarr", zarr_format)
-    _write_zarr_root(voxel_spacing / "wbp_edge_features.zarr", zarr_format)
-    _write_zarr_root(run / "Segmentations" / "10.000_alice_manual_ribosome.zarr", zarr_format)
+    _write_entity_directory(voxel_spacing / "wbp.zarr")
+    _write_entity_directory(voxel_spacing / "wbp_edge_features.zarr")
+    _write_entity_directory(run / "Segmentations" / "10.000_alice_manual_ribosome.zarr")
 
     config = {
         "config_type": "filesystem",
-        "name": "mcp-format-parity",
+        "name": "mcp-entity-discovery",
         "description": "Minimal metadata-only MCP fixture",
         "version": "1.0.0",
         "user_id": "alice",
@@ -77,8 +64,8 @@ def _build_project(path: Path, zarr_format: int) -> Path:
 @pytest.fixture
 def project_configs(tmp_path):
     return {
-        "v2": _build_project(tmp_path / "project-v2", 2),
-        "v3": _build_project(tmp_path / "project-v3", 3),
+        "first": _build_project(tmp_path / "project-first"),
+        "second": _build_project(tmp_path / "project-second"),
     }
 
 
