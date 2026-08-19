@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-alpha.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.6.1...copick-mcp-v2.0.0-alpha.1) (2026-08-19)
+
+
+### ✨ Features
+
+* migrate copick-mcp to Copick 2.0 ([#58](https://github.com/copick/copick-mcp/issues/58)) ([3024f30](https://github.com/copick/copick-mcp/commit/3024f304a329e1e1fd03083c8828c145122ae975))
+
+
+### ⚙ Continuous Integration
+
+* configure v2 alpha releases ([8831698](https://github.com/copick/copick-mcp/commit/88316989f7131111f407ce166b0bf2c68e285505))
+
 ## [0.6.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.6.0...copick-mcp-v0.6.1) (2026-06-29)
 
 
