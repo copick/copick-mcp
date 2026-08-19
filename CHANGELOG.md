@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0-alpha.2](https://github.com/copick/copick-mcp/compare/copick-mcp-v2.0.0-alpha.1...copick-mcp-v2.0.0-alpha.2) (2026-08-19)
+
+
+### 🐞 Bug Fixes
+
+* harden metadata exploration behavior ([#62](https://github.com/copick/copick-mcp/issues/62)) ([921bc47](https://github.com/copick/copick-mcp/commit/921bc47c1eaca9f95c060b4e1240bd50c87b9077))
+* restore CLI introspection contracts ([#60](https://github.com/copick/copick-mcp/issues/60)) ([9df405d](https://github.com/copick/copick-mcp/commit/9df405d66872b7d8631d57ff8839d5e6793bf7ca))
+
+
+### 🧹 Miscellaneous Chores
+
+* align v2.0 maintenance and documentation ([#63](https://github.com/copick/copick-mcp/issues/63)) ([5cafe04](https://github.com/copick/copick-mcp/commit/5cafe04a30e00d7710624ecb347b7edf80b2bae8))
+
 ## [2.0.0-alpha.1](https://github.com/copick/copick-mcp/compare/copick-mcp-v0.6.1...copick-mcp-v2.0.0-alpha.1) (2026-08-19)
 
 
