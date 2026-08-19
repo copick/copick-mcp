@@ -8,9 +8,9 @@ A Model Context Protocol (MCP) server for Copick that provides two sets of tools
 ## Features
 
 - **Read-only data exploration** - List and inspect runs, picks, segmentations, meshes, tomograms, and project metadata
-- **CLI discovery** - Dynamically discover all available copick CLI commands with full documentation
+- **CLI discovery** - Dynamically discover all available copick CLI commands with compact summaries and opt-in help
 - **Command validation** - Validate copick CLI command syntax using Click's native parsing
-- **Smart caching** - Efficient caching of copick project roots
+- **Smart caching** - Bounded project-root caching that reloads changed configurations
 - **Easy setup** - Simple CLI for registering with Claude Desktop or Claude Code
 
 ## Installation
@@ -38,14 +38,15 @@ For the matching 2.0 prerelease stack, use
 
 The copick-mcp 2.0 line requires Python 3.11 or newer, copick 2.0, and
 copick-utils 2.0. Its data-exploration tools use copick's entity and metadata
-APIs, so they can inspect both legacy OME-Zarr 0.4 / Zarr v2 projects and
-OME-Zarr 0.5 / Zarr v3 projects supported by copick.
+APIs and therefore inherit support for the legacy and current project formats
+supported and tested by copick.
 
 copick-mcp does not open arrays, interpret OME-Zarr layouts, or write project
-data. New output format and storage-backend behavior are owned by copick and
-the command plugin being described. Installing the `torch` extra adds the
-copick-torch 2.0 command plugins and enables installed nnUNet workflow status;
-no model is loaded or executed by introspection.
+data. Its tests verify format-neutral entity discovery; they do not re-test
+OME-Zarr parsing. Format interoperability, output format, and storage-backend
+behavior are owned by copick and the command plugin being described. Installing
+the `torch` extra adds the copick-torch 2.0 command plugins and enables installed
+nnUNet workflow status; no model is loaded or executed by introspection.
 
 ## Quick Setup
 
@@ -125,57 +126,59 @@ If you prefer manual setup, add the following configuration to the appropriate f
 
 ### Data Exploration Tools (Read-Only)
 
-All data exploration tools require a `config_path` parameter pointing to your copick configuration file.
+Data exploration tools accept a `config_path` pointing to a Copick configuration
+file. It may be omitted when the server was registered with `--config-path`,
+which supplies `COPICK_MCP_DEFAULT_CONFIG`; an explicit path always wins.
 
 #### `list_runs`
 List all runs in a Copick project.
-- **Args**: `config_path` (str)
+- **Args**: `config_path` (optional when a server default is configured)
 - **Returns**: List of run names
 
 #### `get_run_details`
 Get detailed information about a specific run including voxel spacings, picks, meshes, and segmentations.
-- **Args**: `config_path` (str), `run_name` (str)
+- **Args**: `run_name` (str), `config_path` (optional), `include_point_details` (optional, default `false`)
 - **Returns**: Comprehensive run details
 
 #### `list_objects`
 List all pickable objects defined in the project.
-- **Args**: `config_path` (str)
+- **Args**: `config_path` (optional when a server default is configured)
 - **Returns**: List of objects with properties (name, type, label, color, radius, etc.)
 
 #### `list_picks`
 List picks for a run with optional filtering.
-- **Args**: `config_path` (str), `run_name` (str), `object_name` (optional), `user_id` (optional), `session_id` (optional)
-- **Returns**: List of picks with point counts and sample coordinates
+- **Args**: `run_name` (str), `config_path` (optional), `object_name` (optional), `user_id` (optional), `session_id` (optional), `include_point_details` (optional, default `false`)
+- **Returns**: Pick metadata; opt-in details add point counts and sample coordinates, with per-pick load errors isolated
 
 #### `list_meshes`
 List meshes for a run with optional filtering.
-- **Args**: `config_path` (str), `run_name` (str), `object_name` (optional), `user_id` (optional), `session_id` (optional)
+- **Args**: `run_name` (str), `config_path` (optional), `object_name` (optional), `user_id` (optional), `session_id` (optional)
 - **Returns**: List of meshes
 
 #### `list_segmentations`
 List segmentations for a run with optional filtering.
-- **Args**: `config_path` (str), `run_name` (str), `voxel_size` (optional), `name` (optional), `user_id` (optional), `session_id` (optional), `is_multilabel` (optional)
+- **Args**: `run_name` (str), `config_path` (optional), `voxel_size` (optional), `name` (optional), `user_id` (optional), `session_id` (optional), `is_multilabel` (optional)
 - **Returns**: List of segmentations with metadata
 
 #### `list_tomograms`
 List tomograms for a specific run and voxel spacing.
-- **Args**: `config_path` (str), `run_name` (str), `voxel_spacing` (float)
+- **Args**: `run_name` (str), `voxel_spacing` (float), `config_path` (optional)
 - **Returns**: List of tomograms with feature information
 
 #### `list_voxel_spacings`
 List all voxel spacings available for a run.
-- **Args**: `config_path` (str), `run_name` (str)
+- **Args**: `run_name` (str), `config_path` (optional)
 - **Returns**: List of voxel spacings with tomogram counts
 
 #### `get_project_info`
 Get general project information and statistics.
-- **Args**: `config_path` (str)
+- **Args**: `config_path` (optional when a server default is configured)
 - **Returns**: Project metadata and entity counts
 
 #### `get_json_config`
-Get the raw JSON configuration of the project.
-- **Args**: `config_path` (str)
-- **Returns**: Complete configuration dictionary
+Get the normalized, validated JSON configuration of the project.
+- **Args**: `config_path` (optional when a server default is configured)
+- **Returns**: Copick's JSON-serializable configuration model; non-Copick and oversized JSON files are rejected
 
 ### CLI Introspection Tools
 
@@ -183,8 +186,9 @@ These tools help LLMs discover and validate copick CLI commands for building pro
 
 #### `list_copick_cli_commands`
 List all available copick CLI commands hierarchically organized by group.
+- **Args**: `include_help` (optional, default `false`); enable only when full help for every command is required
 - **Returns**: Complete command tree including:
-  - `main`: Core commands (add, browse, config, deposit, info, new, stats, sync)
+  - `main`: Core commands (add, browse, config, cp, deposit, export, info, mv, new, rm, stats, sync)
   - `inference`: Inference commands (e.g., membrain-seg)
   - `training`: Training commands
   - `evaluation`: Evaluation commands
@@ -212,9 +216,16 @@ Validate a copick CLI command string using Click's syntax validation.
 - **Args**: `command_string` (str) - e.g., "copick convert picks2seg --config /path/to/config.json ..."
 - **Returns**: Validation result including:
   - Valid/invalid status
+  - Resolved command path for parameter errors
   - Missing required parameters
   - Parameter type errors
   - Helpful error messages from Click
+  - Captured Click help or diagnostics in `output`, when applicable
+
+#### `get_nnunet_workflow_info`
+Return the prepare → train → inference workflow for copick-torch.
+- **Returns**: Installation status, GPU safety guidance, and authoritative command parameters/help read from installed `copick-torch` entry points
+- When the optional package is absent, returns installation instructions without duplicating a potentially stale parameter table
 
 ## Usage Examples
 
@@ -328,7 +339,7 @@ copick setup mcp-remove --server-name "copick-mcp" --force
 3. **"Permission denied"**: Check that the Claude config directory is writable
 4. **"Invalid JSON"**: Use `copick setup mcp-status` to validate your configuration
 5. **"Command not found" during CLI introspection**: Ensure copick and all plugin packages (copick-torch, copick-utils) are installed
-6. **"setup command not found"**: Make sure copick-mcp is installed (`pip install -e .` from the copick-mcp directory)
+6. **"setup command not found"**: Make sure copick-mcp is installed (`pip install copick-mcp`, or the explicit prerelease command above)
 
 ## Development
 
